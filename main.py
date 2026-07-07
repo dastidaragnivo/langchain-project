@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import PromptTemplate
 
 # from langchain_openai import ChatOpenAI
@@ -10,11 +9,43 @@ from langchain_ollama import ChatOllama
 
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
-load_dotenv(dotenv_path=Path.cwd() / ".env", override=False)
+
+
+def configure_langsmith():
+    tracing_enabled = os.getenv("LANGSMITH_TRACING", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+    if tracing_enabled:
+        endpoint = (
+            os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+            .strip()
+            .strip('"')
+            .strip("'")
+        )
+        project = (
+            os.getenv("LANGSMITH_PROJECT", "default").strip().strip('"').strip("'")
+        )
+        api_key = os.getenv("LANGSMITH_API_KEY", "").strip().strip('"').strip("'")
+
+        os.environ["LANGSMITH_ENDPOINT"] = endpoint or "https://api.smith.langchain.com"
+        os.environ["LANGSMITH_PROJECT"] = project or "default"
+        if api_key:
+            os.environ["LANGSMITH_API_KEY"] = api_key
+        else:
+            print("LANGSMITH_API_KEY is not set; tracing may not authenticate.")
+
+        print(
+            f"LangSmith tracing enabled for project: {os.environ['LANGSMITH_PROJECT']}"
+        )
+    else:
+        print("LangSmith tracing is disabled.")
 
 
 def main():
-    print("Hello from langchain-course!")
     # print(os.environ.get("GEMINI_API_KEY"))
     information = """
     Elon Reeve Musk FRS (/ˈiːlɒn/ EE-lon; born June 28, 1971) is a businessman, known for his leadership of Tesla, SpaceX, X (formerly Twitter), and the Department of Government Efficiency (DOGE). Musk has been the wealthiest person in the world since 2021; as of May 2025, Forbes estimates his net worth to be US$424.7 billion.
@@ -38,12 +69,14 @@ Musk's political activities, views, and statements have made him a polarizing fi
         input_variables=["information"], template=summary_template
     )
 
-    #api_key = os.getenv("ANTHROPIC_API_KEY")
-    #if not api_key:
+    configure_langsmith()
+
+    # api_key = os.getenv("ANTHROPIC_API_KEY")
+    # if not api_key:
     #   raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
 
     # llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0, api_key=api_key)
-    
+
     llm = ChatOllama(temperature=0, model="gemma3:270m")
     chain = summary_prompt_template | llm
 
