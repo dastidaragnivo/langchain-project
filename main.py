@@ -1,13 +1,21 @@
-from dotenv import load_dotenv
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain_ollama import ChatOllama
+import os
+from pathlib import Path
 
-load_dotenv()
+from dotenv import load_dotenv
+from langchain_anthropic import ChatAnthropic
+from langchain_core.prompts import PromptTemplate
+
+# from langchain_openai import ChatOpenAI
+# from langchain_ollama import ChatOllama
+
+env_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=Path.cwd() / ".env", override=False)
 
 
 def main():
     print("Hello from langchain-course!")
+    # print(os.environ.get("GEMINI_API_KEY"))
     information = """
     Elon Reeve Musk FRS (/ˈiːlɒn/ EE-lon; born June 28, 1971) is a businessman, known for his leadership of Tesla, SpaceX, X (formerly Twitter), and the Department of Government Efficiency (DOGE). Musk has been the wealthiest person in the world since 2021; as of May 2025, Forbes estimates his net worth to be US$424.7 billion.
 
@@ -31,11 +39,20 @@ Musk's political activities, views, and statements have made him a polarizing fi
     )
 
     # llm = ChatOllama(temperature=0, model="gemma3:270m")
-    llm = ChatOpenAI(temperature=0, model="gpt-5")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
+
+    llm = ChatAnthropic(
+        model="claude-sonnet-4-6",
+        temperature=0,
+        api_key=api_key,
+    )
     chain = summary_prompt_template | llm
 
     response = chain.invoke(input={"information": information})
     print(response.content)
+
 
 if __name__ == "__main__":
     main()
