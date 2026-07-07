@@ -6,7 +6,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import PromptTemplate
 
 # from langchain_openai import ChatOpenAI
-# from langchain_ollama import ChatOllama
+from langchain_ollama import ChatOllama
 
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
@@ -38,16 +38,13 @@ Musk's political activities, views, and statements have made him a polarizing fi
         input_variables=["information"], template=summary_template
     )
 
-    # llm = ChatOllama(temperature=0, model="gemma3:270m")
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
+    #api_key = os.getenv("ANTHROPIC_API_KEY")
+    #if not api_key:
+    #   raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
 
-    llm = ChatAnthropic(
-        model="claude-sonnet-4-6",
-        temperature=0,
-        api_key=api_key,
-    )
+    # llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0, api_key=api_key)
+    
+    llm = ChatOllama(temperature=0, model="gemma3:270m")
     chain = summary_prompt_template | llm
 
     response = chain.invoke(input={"information": information})
