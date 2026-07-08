@@ -4,87 +4,42 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import PromptTemplate
-
-# from langchain_openai import ChatOpenAI
-#from langchain_ollama import ChatOllama
-
+from langchain.agents import create_agent
+from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage
+from tavily import TavilyClient
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
 
+tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
-def configure_langsmith():
-    tracing_enabled = os.getenv("LANGSMITH_TRACING", "false").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+#Using custom search tool in Tavily
+@tool
+def search(query: str) -> str:
+    """
+    A search tool that uses the TAVILY API to search the web.
+    Args:
+        query (str): The search query.
+    Returns:
+        str: The search results.
+    """
+    print(f"Searching for: {query}")
+    return tavily.search(query=query)
 
-    if tracing_enabled:
-        endpoint = (
-            os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
-            .strip()
-            .strip('"')
-            .strip("'")
-        )
-        project = (
-            os.getenv("LANGSMITH_PROJECT", "default").strip().strip('"').strip("'")
-        )
-        api_key = os.getenv("LANGSMITH_API_KEY", "").strip().strip('"').strip("'")
-
-        os.environ["LANGSMITH_ENDPOINT"] = endpoint or "https://api.smith.langchain.com"
-        os.environ["LANGSMITH_PROJECT"] = project or "default"
-        if api_key:
-            os.environ["LANGSMITH_API_KEY"] = api_key
-        else:
-            print("LANGSMITH_API_KEY is not set; tracing may not authenticate.")
-
-        print(
-            f"LangSmith tracing enabled for project: {os.environ['LANGSMITH_PROJECT']}"
-        )
-    else:
-        print("LangSmith tracing is disabled.")
+llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0, api_key=os.getenv("ANTHROPIC_API_KEY"))
+tools = [search]
+agent = create_agent(model=llm, tools=tools)
 
 
 def main():
     print("Hello from langchain-course!")
-    # print(os.environ.get("GEMINI_API_KEY"))
-    information = """
-    Elon Reeve Musk FRS (/ˈiːlɒn/ EE-lon; born June 28, 1971) is a businessman, known for his leadership of Tesla, SpaceX, X (formerly Twitter), and the Department of Government Efficiency (DOGE). Musk has been the wealthiest person in the world since 2021; as of May 2025, Forbes estimates his net worth to be US$424.7 billion.
+    result = agent.invoke({"messages":[HumanMessage(content="search for 5 job postings in different companies for an ai engineer using langchain in the Kolkata area on linkedin and list their details")]})
+    
 
-Born to a wealthy family in Pretoria, South Africa, Musk emigrated in 1989 to Canada. He received bachelor's degrees from the University of Pennsylvania in 1997 before moving to California, United States, to pursue business ventures. In 1995, Musk co-founded the software company Zip2. Following its sale in 1999, he co-founded X.com, an online payment company that later merged to form PayPal, which was acquired by eBay in 2002. That year, Musk also became an American citizen.
+    # configure_langsmith()
 
-In 2002, Musk founded the space technology company SpaceX, becoming its CEO and chief engineer; the company has since led innovations in reusable rockets and commercial spaceflight. Musk joined the automaker Tesla as an early investor in 2004 and became its CEO and product architect in 2008; it has since become a leader in electric vehicles. In 2015, he co-founded OpenAI to advance artificial intelligence (AI) research but later left; growing discontent with the organization's direction and their leadership in the AI boom in the 2020s led him to establish xAI. In 2022, he acquired the social network Twitter, implementing significant changes and rebranding it as X in 2023. His other businesses include the neurotechnology company Neuralink, which he co-founded in 2016, and the tunneling company the Boring Company, which he founded in 2017.
 
-Musk was the largest donor in the 2024 U.S. presidential election, and is a supporter of global far-right figures, causes, and political parties. In early 2025, he served as senior advisor to United States president Donald Trump and as the de facto head of DOGE. After a public feud with Trump, Musk left the Trump administration and announced he was creating his own political party, the America Party.
-
-Musk's political activities, views, and statements have made him a polarizing figure, especially following the COVID-19 pandemic. He has been criticized for making unscientific and misleading statements, including COVID-19 misinformation and promoting conspiracy theories, and affirming antisemitic, racist, and transphobic comments. His acquisition of Twitter was controversial due to a subsequent increase in hate speech and the spread of misinformation on the service. His role in the second Trump administration attracted public backlash, particularly in response to DOGE.
-    """
-
-    summary_template = """
-    given the information {information} about a person I want you to create:
-    1. A short summary
-    2. two interesting facts about them
-    """
-
-    summary_prompt_template = PromptTemplate(
-        input_variables=["information"], template=summary_template
-    )
-
-    configure_langsmith()
-
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-      raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
-
-    llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0, api_key=api_key)
-
-    #llm = ChatOllama(temperature=0, model="gemma3:270m")
-    print(f"Using model client: {type(llm).__name__}")
-    chain = summary_prompt_template | llm
-
-    response = chain.invoke(input={"information": information})
-    print(response.content)
+    print(result)
 
 
 if __name__ == "__main__":
