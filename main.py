@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
 
-# from typing import List
-# from pydantic import BaseModel, Field
+###For structured output
+from typing import List
+from pydantic import BaseModel, Field
+
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import PromptTemplate
@@ -32,10 +34,21 @@ tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 #    print(f"Searching for: {query}")
 #    return tavily.search(query=query)
 
+class Source(BaseModel):
+    """Schema for a source used by the agent"""
+
+    url: str = Field(description="The URL of the source")
+
+class AgentResponse(BaseModel):
+    """Schema for the agent's response"""
+
+    answer: str = Field(description="The agent's answer to the user's query")
+    sources: List[Source] = Field(default_factory = list, description="A list of sources used to generate the answer")
+
 
 llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0, api_key=os.getenv("ANTHROPIC_API_KEY"))
 tools = [TavilySearch(tavily=tavily, name="TavilySearch", description="Tavily's default search tool to search the web.")]
-agent = create_agent(model=llm, tools=tools)
+agent = create_agent(model=llm, tools=tools, response_format=AgentResponse)
 
 
 def main():
