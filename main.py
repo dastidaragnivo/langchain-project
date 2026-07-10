@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
-from langchain_ollama import ChatOllama
+#from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
 from langchain.agents import create_agent
 from langchain_core.tools import tool
