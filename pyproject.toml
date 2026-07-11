@@ -12,6 +12,10 @@ dependencies = [
     "langchain-pinecone>=0.2.11",
     "langchain-unstructured>=1.0.1",
     "langchainhub>=0.1.21",
+    "langchain_community",
+    "langchain_text_splitters",
+    "langchain_anthropic",
     "python-dotenv>=1.1.1",
     "unstructured>=0.23.1",
+    "langchain-voyageai>=0.4.0",
 ]
