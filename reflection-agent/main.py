@@ -51,15 +51,6 @@ print(graph.get_graph().draw_mermaid())
 
 if __name__ == '__main__':
     print("Hello LangGraph")
-    # inputs = HumanMessage(content="""Make this tweet better:
-    #                                 @LangchainAI
-    #                                 - newly launched Tool Calling feature is seriously underrated.
-    #                                 
-    #                                 After a long wait, it's her - making the implementation of agents across different models with function calling - super easy.
-    #                                 
-    #                                 Made a video covering their newest blog post
-    #                                 """)
-
-    inputs = HumanMessage(content=input("Enter your tweet: "))
-    graph.invoke({"messages": [inputs]})
-    print("Done!")
+    tweet = input("Enter your tweet: ")
+    result = graph.invoke({"messages": [HumanMessage(content=tweet)]})
+    print(result["messages"][-1].content)
