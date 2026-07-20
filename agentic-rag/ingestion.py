@@ -20,15 +20,15 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=
 
 docs_splits = text_splitter.split_documents(docs_list)
 
-#vectorstore = Chroma.from_documents(
-#    documents=docs_splits,
-#    collection_name="rag-chroma",
-#    embedding=VoyageAIEmbeddings(
-#        api_key=os.environ.get("VOYAGEAI_API_KEY"),
-#        model="voyage-3-large",
-#    ),
-#    persist_directory="./.chroma",
-#)
+vectorstore = Chroma.from_documents(
+    documents=docs_splits,
+    collection_name="rag-chroma",
+    embedding=VoyageAIEmbeddings(
+        api_key=os.environ.get("VOYAGEAI_API_KEY"),
+        model="voyage-3-large",
+    ),
+    persist_directory="./.chroma",
+)
 
 retriever = Chroma(
     collection_name="rag-chroma",
