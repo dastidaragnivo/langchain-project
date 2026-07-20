@@ -141,7 +141,8 @@ TRACE_RULES = [
     ("---CHECK DOCUMENT RELEVANCE TO QUESTION---", "rr-step-info", "🔍", "Grading each retrieved document for relevance"),
     ("---GRADE: DOCUMENT RELEVANT---", "rr-step-good", "✅", "Document marked relevant"),
     ("---GRADE: DOCUMENT NOT RELEVANT---", "rr-step-warn", "⚠️", "Document marked not relevant — discarded"),
-    ("WERE RELEVANT (FEWER THAN HALF)---", "rr-step-warn", "🚫", "Fewer than half the retrieved documents were relevant"),
+    ("---RETRIEVER RETURNED ZERO DOCUMENTS FOR THIS QUERY---", "rr-step-warn", "🚫", "Retriever returned zero documents for this query"),
+    ("---DECISION: FEWER THAN HALF RELEVANT, FALLING BACK TO WEB SEARCH---", "rr-step-loop", "🚫", "Fewer than half were relevant → falling back to web search"),
     ("---ASSESS GRADED DOCUMENTS---", "rr-step-info", "🧭", "Deciding whether local context is sufficient"),
     ("---DECISION: NOT ALL DOCUMENTS ARE RELEVANT", "rr-step-loop", "🌐", "Local docs insufficient → falling back to live web search"),
     ("---DECISION: DOCUMENTS ARE RELEVANT", "rr-step-good", "✨", "Local docs sufficient → proceeding straight to generation"),
@@ -161,6 +162,19 @@ def render_trace(raw_stdout: str) -> list[str]:
     lines = [ln.strip() for ln in raw_stdout.splitlines() if ln.strip()]
     html_chunks = []
     for line in lines:
+        if "---REJECTED CHUNK PREVIEW:" in line:
+            preview = line.split("---REJECTED CHUNK PREVIEW:", 1)[1].rsplit("---", 1)[0].strip()
+            html_chunks.append(
+                f'<div class="rr-step rr-step-warn"><span>📄</span>'
+                f'<span>Rejected chunk preview: "{preview}"</span></div>'
+            )
+            continue
+        if "---RELEVANCE RATIO:" in line:
+            ratio = line.split("---RELEVANCE RATIO:", 1)[1].rsplit("---", 1)[0].strip()
+            html_chunks.append(
+                f'<div class="rr-step rr-step-info"><span>📊</span><span>{ratio}</span></div>'
+            )
+            continue
         matched = False
         for marker, css_class, icon, label in TRACE_RULES:
             if marker in line:

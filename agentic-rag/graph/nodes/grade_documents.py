@@ -31,6 +31,7 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
     documents = state["documents"]
 
     if not documents:
+        print("---RETRIEVER RETURNED ZERO DOCUMENTS FOR THIS QUERY---")
         return {"documents": [], "question": question, "web_search": True}
 
     grader_inputs = [{"question": question, "document": d.page_content} for d in documents]
@@ -45,15 +46,18 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
             filtered_docs.append(doc)
         else:
             print("---GRADE: DOCUMENT NOT RELEVANT---")
+            snippet = " ".join(doc.page_content.split())[:140]
+            print(f"---REJECTED CHUNK PREVIEW: {snippet}...---")
+
+    # Always log the ratio (not just when it triggers search) so the trace
+    # makes it obvious whether this is a borderline call or a landslide.
+    print(f"---RELEVANCE RATIO: {len(filtered_docs)}/{len(documents)} DOCUMENTS RELEVANT---")
 
     # Only fall back to web search when fewer than half the retrieved docs
     # were relevant -- a mostly-good retrieval (>= half relevant) is left
     # alone and generation proceeds on the relevant subset.
     web_search = len(filtered_docs) < (len(documents) / 2)
     if web_search:
-        print(
-            f"---ONLY {len(filtered_docs)}/{len(documents)} RETRIEVED DOCUMENTS "
-            "WERE RELEVANT (FEWER THAN HALF)---"
-        )
+        print("---DECISION: FEWER THAN HALF RELEVANT, FALLING BACK TO WEB SEARCH---")
 
     return {"documents": filtered_docs, "question": question, "web_search": web_search}
