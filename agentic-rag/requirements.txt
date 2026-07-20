@@ -1,0 +1,34 @@
+# --- UI ---
+streamlit>=1.38
+
+# --- Core orchestration ---
+langgraph>=0.2
+langchain>=0.3
+langchain-core>=0.3
+langchain-community>=0.3
+langchain-text-splitters>=0.3
+
+# --- LLM (generation, grading chains) ---
+langchain-anthropic>=0.2
+
+# --- Ingestion ---
+langchain-unstructured>=0.1
+unstructured[html]>=0.15
+
+# --- Embeddings + vector store ---
+langchain-voyageai>=0.1
+langchain-chroma>=0.2
+chromadb>=0.5
+
+# --- Web search fallback ---
+langchain-tavily>=0.1
+
+# --- Prompt registry (used in chains/generation.py) ---
+langsmith>=0.1
+
+# --- Schemas / config ---
+pydantic>=2.7
+python-dotenv>=1.0
+
+# --- Sidebar architecture diagram (optional, used by st.graphviz_chart if enabled) ---
+graphviz>=0.20
