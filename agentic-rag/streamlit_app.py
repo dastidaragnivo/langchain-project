@@ -275,6 +275,32 @@ if load_error is not None:
     st.stop()
 
 # ----------------------------------------------------------------------------
+# Sanity-check the vector store on startup. An empty/misconfigured index
+# doesn't error -- every query just silently retrieves nothing and falls
+# back to web search, which is confusing to debug one question at a time.
+# ----------------------------------------------------------------------------
+try:
+    from ingestion import get_index_stats
+    index_stats = get_index_stats()
+except Exception:  # noqa: BLE001
+    index_stats = None
+
+if index_stats is not None and not index_stats["ok"]:
+    if index_stats["error"]:
+        st.warning(
+            f"⚠️ Couldn't read the local vector store at `{index_stats['path']}` "
+            f"({index_stats['error']}). Every question will fall back to web search "
+            "until this is fixed."
+        )
+    else:
+        st.warning(
+            f"⚠️ The local vector store at `{index_stats['path']}` has **0 documents**. "
+            "Every question will fall back to web search until it's rebuilt. Run "
+            "`python ingestion.py` locally and make sure the resulting `.chroma/` "
+            "folder is committed and present in this deployment."
+        )
+
+# ----------------------------------------------------------------------------
 # Chat state
 # ----------------------------------------------------------------------------
 if "chat_history" not in st.session_state:
