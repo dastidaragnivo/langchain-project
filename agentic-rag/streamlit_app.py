@@ -134,10 +134,14 @@ st.markdown(
 # Maps substrings from the pipeline's stdout prints -> (css class, icon, label)
 # ----------------------------------------------------------------------------
 TRACE_RULES = [
+    ("---CONTEXTUALIZE QUESTION---", "rr-step-info", "🧵", "Checking the question against prior conversation"),
+    ("---NO PRIOR HISTORY, USING QUESTION AS-IS---", "rr-step-info", "🆕", "First question this session — using it as-is"),
+    ("---REWRITTEN QUESTION:", "rr-step-good", "✏️", "Rewrote as a standalone question using chat history"),
     ("---RETRIEVE---", "rr-step-action", "📚", "Retrieving documents from the local knowledge base"),
     ("---CHECK DOCUMENT RELEVANCE TO QUESTION---", "rr-step-info", "🔍", "Grading each retrieved document for relevance"),
     ("---GRADE: DOCUMENT RELEVANT---", "rr-step-good", "✅", "Document marked relevant"),
     ("---GRADE: DOCUMENT NOT RELEVANT---", "rr-step-warn", "⚠️", "Document marked not relevant — discarded"),
+    ("WERE RELEVANT (FEWER THAN HALF)---", "rr-step-warn", "🚫", "Fewer than half the retrieved documents were relevant"),
     ("---ASSESS GRADED DOCUMENTS---", "rr-step-info", "🧭", "Deciding whether local context is sufficient"),
     ("---DECISION: NOT ALL DOCUMENTS ARE RELEVANT", "rr-step-loop", "🌐", "Local docs insufficient → falling back to live web search"),
     ("---DECISION: DOCUMENTS ARE RELEVANT", "rr-step-good", "✨", "Local docs sufficient → proceeding straight to generation"),
@@ -300,11 +304,20 @@ if user_question:
         trace_html_container = trace_placeholder.empty() if trace_placeholder else None
         answer_placeholder = st.empty()
 
+        # Prior turns as (question, answer) pairs, so the graph can rewrite
+        # follow-up questions (e.g. "what about its downsides?") into
+        # standalone ones before retrieval.
+        history_pairs = [
+            (turn["question"], turn["answer"]) for turn in st.session_state.chat_history
+        ]
+
         with st.spinner("Thinking through retrieve → grade → generate → verify..."):
             buffer = io.StringIO()
             try:
                 with contextlib.redirect_stdout(buffer):
-                    result = graph_app.invoke(input={"question": user_question})
+                    result = graph_app.invoke(
+                        input={"question": user_question, "chat_history": history_pairs}
+                    )
                 error = None
             except Exception as exc:  # noqa: BLE001
                 result = None

@@ -7,7 +7,12 @@ from graph.state import GraphState
 def grade_documents(state: GraphState) -> Dict[str, Any]:
     """
     Determines whether the retrieved documents are relevant to the question.
-    If any document is not relevant, we will set a flag to run web search.
+    Web search is triggered only if FEWER THAN HALF of the retrieved
+    documents are relevant -- if at least half are relevant, we proceed to
+    generate using the relevant subset. This avoids discarding a mostly-good
+    retrieval (e.g. 3 of 4 chunks relevant) just because one chunk missed,
+    while still catching genuinely weak retrievals (e.g. only 1 of 4
+    relevant) that a "zero relevant" threshold would let through unchecked.
 
     Documents are graded concurrently (via .batch) rather than one-by-one,
     since a synchronous for-loop was making one sequential Claude API round
@@ -34,13 +39,21 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
     scores = retrieval_grader.batch(grader_inputs, config={"max_concurrency": 5})
 
     filtered_docs = []
-    web_search = False
     for doc, score in zip(documents, scores):
         if score.binary_score.lower() == "yes":
             print("---GRADE: DOCUMENT RELEVANT---")
             filtered_docs.append(doc)
         else:
             print("---GRADE: DOCUMENT NOT RELEVANT---")
-            web_search = True
+
+    # Only fall back to web search when fewer than half the retrieved docs
+    # were relevant -- a mostly-good retrieval (>= half relevant) is left
+    # alone and generation proceeds on the relevant subset.
+    web_search = len(filtered_docs) < (len(documents) / 2)
+    if web_search:
+        print(
+            f"---ONLY {len(filtered_docs)}/{len(documents)} RETRIEVED DOCUMENTS "
+            "WERE RELEVANT (FEWER THAN HALF)---"
+        )
 
     return {"documents": filtered_docs, "question": question, "web_search": web_search}
